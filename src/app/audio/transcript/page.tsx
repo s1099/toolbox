@@ -359,7 +359,7 @@ export default function TranscriptPage() {
   return (
     <div className="grid min-h-0 flex-1 gap-4 overflow-y-auto p-4 md:grid-cols-2 md:overflow-hidden">
       <Tabs
-        className="flex min-h-0 flex-col gap-3 md:overflow-y-auto"
+        className="flex flex-col gap-3 md:min-h-0 md:overflow-y-auto"
         onValueChange={(value) => setTab(value as "upload" | "record")}
         value={tab}
       >
@@ -566,7 +566,7 @@ export default function TranscriptPage() {
         </div>
       </Tabs>
 
-      <section className="flex min-h-0 flex-col gap-3">
+      <section className="flex flex-col gap-3 md:min-h-0">
         <TranscriptHeader
           language={language}
           model={model}

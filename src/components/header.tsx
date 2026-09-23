@@ -68,7 +68,7 @@ export function Header() {
       </Breadcrumb>
 
       <Button
-        className="ml-auto w-56 justify-start text-muted-foreground"
+        className="ml-auto w-56 justify-start text-muted-foreground max-md:w-[11.2rem]"
         onClick={() => setOpen(true)}
         variant="outline"
       >
