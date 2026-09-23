@@ -42,7 +42,7 @@ export function AppSidebar() {
           <SidebarGroup key={category.name}>
             <SidebarGroupLabel>{category.name}</SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-0.5">
                 {category.tools.map((tool) => (
                   <SidebarMenuItem key={tool.href}>
                     <SidebarMenuButton

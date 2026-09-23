@@ -3,6 +3,7 @@ import {
   BackgroundIcon,
   Image01Icon,
   ScanImageIcon,
+  SquareArrowExpand01Icon,
   SubtitleIcon,
 } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
@@ -37,6 +38,12 @@ export const categories: Category[] = [
         href: "/image/remove-background",
         icon: BackgroundIcon,
         name: "Remove background",
+      },
+      {
+        description: "Enlarge images 2× or 4× with the detail filled in.",
+        href: "/image/upscale",
+        icon: SquareArrowExpand01Icon,
+        name: "Upscale",
       },
     ],
   },
