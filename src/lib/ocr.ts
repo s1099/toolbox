@@ -59,8 +59,8 @@ export interface OcrResult {
   text: string;
 }
 
+/** Combined across every file the engine downloads. */
 export interface LoadProgress {
-  file: string;
   loaded: number;
   total: number;
 }
@@ -76,7 +76,7 @@ const DICT_ITEM = /^\s*- (.*?)\r?$/;
  * character per list item, running to the end of the file. PaddleX single-
  * quotes the characters YAML would otherwise choke on.
  */
-export function parseCharDict(yaml: string): string[] {
+function parseCharDict(yaml: string): string[] {
   const start = yaml.indexOf("character_dict:\n");
   if (start === -1) {
     throw new Error("character_dict not found in recognition config");
@@ -104,7 +104,7 @@ export function parseCharDict(yaml: string): string[] {
  * space character when `use_space_char` is set, which shows up here as the
  * model having exactly one class more than blank + dictionary.
  */
-export function buildCharset(dict: string[], numClasses: number): string[] {
+function buildCharset(dict: string[], numClasses: number): string[] {
   const charset = ["<blank>", ...dict];
   while (charset.length < numClasses) {
     charset.push(" ");
@@ -118,12 +118,12 @@ export function buildCharset(dict: string[], numClasses: number): string[] {
  * hands back raw logits the per-step distribution is normalised so the reported
  * score stays a probability.
  */
-export function ctcDecode(
+function ctcDecode(
   logits: Float32Array,
   steps: number,
   numClasses: number,
   charset: string[],
-  offset = 0
+  offset: number
 ): { text: string; score: number } {
   let text = "";
   let scoreSum = 0;
@@ -181,7 +181,7 @@ function normaliseScore(
  * cleared the threshold — then expand it by the distance pyclipper's unclip
  * would use for a rectangle.
  */
-export function boxesFromProbMap(
+function boxesFromProbMap(
   prob: Float32Array,
   width: number,
   height: number,
@@ -315,15 +315,15 @@ function regionScore(
   width: number
 ): number {
   let sum = 0;
-  let count = 0;
   for (let y = bounds.minY; y <= bounds.maxY; y += 1) {
     const row = y * width;
     for (let x = bounds.minX; x <= bounds.maxX; x += 1) {
       sum += prob[row + x];
-      count += 1;
     }
   }
-  return count === 0 ? 0 : sum / count;
+  const area =
+    (bounds.maxX - bounds.minX + 1) * (bounds.maxY - bounds.minY + 1);
+  return sum / area;
 }
 
 /**
@@ -331,7 +331,7 @@ function regionScore(
  * row. Each row is anchored on its first box so one tall box can't drag the
  * whole row's band down the page.
  */
-export function groupRows(lines: OcrLine[]): OcrLine[][] {
+function groupRows(lines: OcrLine[]): OcrLine[][] {
   const sorted = [...lines].sort(
     (a, b) => a.box.y0 - b.box.y0 || a.box.x0 - b.box.x0
   );
@@ -358,24 +358,27 @@ function sharesRow(anchor: Box, box: Box): boolean {
   return shorter > 0 && overlap >= shorter * ROW_OVERLAP;
 }
 
-/** Joins lines into text, keeping one row of the image per output line. */
-export function joinLines(lines: OcrLine[]): string {
-  return groupRows(lines)
-    .map((row) => row.map((line) => line.text).join(" "))
-    .join("\n");
-}
-
 /* -------------------------------------------------------------------------- */
 /* Runtime                                                                     */
 /* -------------------------------------------------------------------------- */
 
-export type Backend = "webgpu" | "wasm";
+type Backend = "webgpu" | "wasm";
+type Ort = typeof import("onnxruntime-web");
+type OnProgress = (progress: LoadProgress) => void;
+type ReportFile = (label: string, loaded: number, total: number) => void;
 
-interface Engine {
-  backend: Backend;
+interface SessionPair {
   det: InferenceSession;
-  dict: string[];
   rec: InferenceSession;
+}
+
+interface Sessions extends SessionPair {
+  backend: Backend;
+}
+
+interface Engine extends Sessions {
+  dict: string[];
+  Tensor: typeof OrtTensor;
 }
 
 let engine: Promise<Engine> | null = null;
@@ -383,9 +386,7 @@ let engine: Promise<Engine> | null = null;
 // again for the rest of the page's life.
 let webgpuDisabled = false;
 
-export function loadOcr(
-  onProgress?: (progress: LoadProgress) => void
-): Promise<Engine> {
+function loadOcr(onProgress?: OnProgress): Promise<Engine> {
   engine ??= createEngine(onProgress).catch((cause: unknown) => {
     // Don't cache the failure — a retry shouldn't need a page refresh.
     engine = null;
@@ -394,27 +395,36 @@ export function loadOcr(
   return engine;
 }
 
-async function createEngine(
-  onProgress?: (progress: LoadProgress) => void
-): Promise<Engine> {
-  const ort = await import("onnxruntime-web");
+async function createEngine(onProgress?: OnProgress): Promise<Engine> {
+  // Tracked per file, reported to the caller as one combined figure.
+  const files = new Map<string, LoadProgress>();
+  const report: ReportFile = (label, loaded, total) => {
+    files.set(label, { loaded, total });
+    let sumLoaded = 0;
+    let sumTotal = 0;
+    for (const file of files.values()) {
+      sumLoaded += file.loaded;
+      sumTotal += file.total;
+    }
+    onProgress?.({ loaded: sumLoaded, total: sumTotal });
+  };
+
+  const [ort, detBytes, recBytes, recConfig] = await Promise.all([
+    import("onnxruntime-web"),
+    download(DET_MODEL_URL, "detection model", report),
+    download(REC_MODEL_URL, "recognition model", report),
+    download(REC_CONFIG_URL, "character dictionary", report),
+  ]);
   // Threads need cross-origin isolation, which a static export doesn't get.
   // This is also the CPU fallback for ops the WebGPU EP can't take.
   ort.env.wasm.numThreads = 1;
 
-  const [detBytes, recBytes, recConfig] = await Promise.all([
-    download(DET_MODEL_URL, "detection model", onProgress),
-    download(REC_MODEL_URL, "recognition model", onProgress),
-    download(REC_CONFIG_URL, "character dictionary", onProgress),
-  ]);
-
-  const { backend, det, rec } = await createSessions(ort, detBytes, recBytes);
+  const sessions = await createSessions(ort, detBytes, recBytes);
 
   return {
-    backend,
-    det,
+    ...sessions,
     dict: parseCharDict(new TextDecoder().decode(recConfig)),
-    rec,
+    Tensor: ort.Tensor,
   };
 }
 
@@ -425,13 +435,8 @@ const WASM_PROVIDERS = ["wasm"] as const;
 
 type Providers = InferenceSession.SessionOptions["executionProviders"];
 
-interface SessionPair {
-  det: InferenceSession;
-  rec: InferenceSession;
-}
-
 async function createPair(
-  ort: typeof import("onnxruntime-web"),
+  ort: Ort,
   detBytes: Uint8Array,
   recBytes: Uint8Array,
   executionProviders: Providers
@@ -444,15 +449,12 @@ async function createPair(
 }
 
 async function createSessions(
-  ort: typeof import("onnxruntime-web"),
+  ort: Ort,
   detBytes: Uint8Array,
   recBytes: Uint8Array
-): Promise<SessionPair & { backend: Backend }> {
+): Promise<Sessions> {
   if (!webgpuDisabled && "gpu" in navigator) {
-    const accelerated = await tryWebgpu(ort, detBytes, recBytes);
-    if (accelerated) {
-      return accelerated;
-    }
+    return tryWebgpu(ort, detBytes, recBytes);
   }
 
   const pair = await createPair(ort, detBytes, recBytes, WASM_PROVIDERS);
@@ -470,20 +472,22 @@ async function createSessions(
  * this, so the CPU pair is built either way and the GPU has to match it.
  */
 async function tryWebgpu(
-  ort: typeof import("onnxruntime-web"),
+  ort: Ort,
   detBytes: Uint8Array,
   recBytes: Uint8Array
-): Promise<(SessionPair & { backend: Backend }) | null> {
-  let gpu: SessionPair | null = null;
+): Promise<Sessions> {
+  // The CPU pair is needed on every path, so build it alongside the GPU one.
+  const cpuPair = createPair(ort, detBytes, recBytes, WASM_PROVIDERS);
+  let gpu: SessionPair;
   try {
     gpu = await createPair(ort, detBytes, recBytes, WEBGPU_PROVIDERS);
   } catch {
     // No adapter, device lost during init, or a shader that won't build.
     webgpuDisabled = true;
-    return null;
+    return { backend: "wasm", ...(await cpuPair) };
   }
 
-  const cpu = await createPair(ort, detBytes, recBytes, WASM_PROVIDERS);
+  const cpu = await cpuPair;
   try {
     if (await pairsAgree(ort, gpu, cpu)) {
       await releasePair(cpu);
@@ -498,10 +502,7 @@ async function tryWebgpu(
   return { backend: "wasm", ...cpu };
 }
 
-function releasePair(pair: SessionPair | null): Promise<unknown> {
-  if (!pair) {
-    return Promise.resolve();
-  }
+function releasePair(pair: SessionPair): Promise<unknown> {
   const swallow = () => undefined;
   return Promise.all([
     pair.det.release().catch(swallow),
@@ -532,7 +533,7 @@ function probeInput(length: number): Float32Array {
 
 /** Both heads have to reproduce the CPU's answer, at the shapes they run at. */
 async function pairsAgree(
-  ort: typeof import("onnxruntime-web"),
+  ort: Ort,
   gpu: SessionPair,
   cpu: SessionPair
 ): Promise<boolean> {
@@ -553,27 +554,34 @@ async function pairsAgree(
   ]);
 }
 
+/** Feeds a float32 tensor to the session's only input; returns its first output. */
+async function runSingle(
+  session: InferenceSession,
+  Tensor: typeof OrtTensor,
+  data: Float32Array,
+  dims: number[]
+): Promise<OrtTensor> {
+  const outputs = await session.run({
+    [session.inputNames[0]]: new Tensor("float32", data, dims),
+  });
+  return outputs[session.outputNames[0]];
+}
+
 /** Runs one probe through both sessions and compares the outputs elementwise. */
 async function outputsMatch(
-  ort: typeof import("onnxruntime-web"),
+  ort: Ort,
   gpu: InferenceSession,
   cpu: InferenceSession,
   dims: number[]
 ): Promise<boolean> {
   const length = dims.reduce((total, dim) => total * dim, 1);
   // A tensor hands its buffer to the runtime, so each session gets its own.
-  const run = async (session: InferenceSession) => {
-    const outputs = await session.run({
-      [session.inputNames[0]]: new ort.Tensor(
-        "float32",
-        probeInput(length),
-        dims
-      ),
-    });
-    return outputs[session.outputNames[0]].data;
-  };
-
-  return close(await run(gpu), await run(cpu));
+  const [actual, expected] = await Promise.all(
+    [gpu, cpu].map((session) =>
+      runSingle(session, ort.Tensor, probeInput(length), dims)
+    )
+  );
+  return close(actual.data, expected.data);
 }
 
 /**
@@ -631,8 +639,8 @@ const MODEL_CACHE = "ocr-models";
 async function download(
   url: string,
   label: string,
-  onProgress?: (progress: LoadProgress) => void
-): Promise<Uint8Array> {
+  report: ReportFile
+): Promise<Uint8Array<ArrayBuffer>> {
   // Storage can be unavailable (private mode, insecure context) or full; the
   // download still works without it.
   const cache = await openCache();
@@ -642,12 +650,26 @@ async function download(
   if (!response.ok) {
     throw new Error(`Failed to download ${label} (${response.status})`);
   }
+
+  const bytes = await readBody(response, label, report);
   if (!cached && cache) {
-    await cache.put(url, response.clone()).catch(() => {
+    // Cached from the finished bytes rather than a clone of the stream, which
+    // would buffer the whole model a second time before progress could start.
+    const copy = new Response(bytes, {
+      headers: { "content-length": String(bytes.length) },
+    });
+    await cache.put(url, copy).catch(() => {
       // Out of quota — keep going with the in-memory copy.
     });
   }
+  return bytes;
+}
 
+async function readBody(
+  response: Response,
+  label: string,
+  report: ReportFile
+): Promise<Uint8Array<ArrayBuffer>> {
   const total = Number(response.headers.get("content-length") ?? 0);
   const reader = response.body?.getReader();
   if (!reader) {
@@ -664,7 +686,7 @@ async function download(
     }
     chunks.push(value);
     loaded += value.length;
-    onProgress?.({ file: label, loaded, total });
+    report(label, loaded, total);
   }
 
   const bytes = new Uint8Array(loaded);
@@ -693,21 +715,25 @@ async function openCache(): Promise<Cache | null> {
 
 let scratch: HTMLCanvasElement | null = null;
 
-/** One reusable canvas — a dense page can produce hundreds of crops. */
+/**
+ * One reusable canvas — a dense page can produce hundreds of crops. It only
+ * ever grows, and each draw uses its top-left corner, so the backing store
+ * isn't reallocated per crop.
+ */
 function scratchContext(
   width: number,
   height: number
 ): CanvasRenderingContext2D {
   scratch ??= document.createElement("canvas");
-  scratch.width = width;
-  scratch.height = height;
+  if (scratch.width < width || scratch.height < height) {
+    scratch.width = Math.max(scratch.width, width);
+    scratch.height = Math.max(scratch.height, height);
+  }
   const context = scratch.getContext("2d", { willReadFrequently: true });
   if (!context) {
     throw new Error("Canvas 2D context unavailable");
   }
-  // Resizing usually resets the canvas, but re-using the same dimensions may
-  // not, and a rotated crop would otherwise leak its transform into the next
-  // draw.
+  // A rotated crop would otherwise leak its transform into the next draw.
   context.setTransform(1, 0, 0, 1, 0, 0);
   context.clearRect(0, 0, width, height);
   return context;
@@ -731,35 +757,21 @@ function drawToPixels(
     return context.getImageData(0, 0, width, height);
   }
 
-  const cropWidth = crop.x1 - crop.x0;
-  const cropHeight = crop.y1 - crop.y0;
   if (rotate) {
     context.translate(0, height);
     context.rotate(-Math.PI / 2);
-    context.drawImage(
-      source,
-      crop.x0,
-      crop.y0,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      height,
-      width
-    );
-  } else {
-    context.drawImage(
-      source,
-      crop.x0,
-      crop.y0,
-      cropWidth,
-      cropHeight,
-      0,
-      0,
-      width,
-      height
-    );
   }
+  context.drawImage(
+    source,
+    crop.x0,
+    crop.y0,
+    crop.x1 - crop.x0,
+    crop.y1 - crop.y0,
+    0,
+    0,
+    rotate ? height : width,
+    rotate ? width : height
+  );
   return context.getImageData(0, 0, width, height);
 }
 
@@ -780,14 +792,22 @@ function writeTensor(
 ): void {
   const { width, height, data } = pixels;
   const plane = height * strideWidth;
+  // A channel only ever sees 256 byte values, so normalise each one once.
+  const [blue, green, red] = [0, 1, 2].map((channel) => {
+    const table = new Float32Array(BYTE_MAX + 1);
+    for (let value = 0; value <= BYTE_MAX; value += 1) {
+      table[value] = (value / BYTE_MAX - mean[channel]) / std[channel];
+    }
+    return table;
+  });
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const source = (y * width + x) * 4;
       const index = offset + y * strideWidth + x;
-      target[index] = (data[source + 2] / BYTE_MAX - mean[0]) / std[0];
-      target[plane + index] = (data[source + 1] / BYTE_MAX - mean[1]) / std[1];
-      target[2 * plane + index] = (data[source] / BYTE_MAX - mean[2]) / std[2];
+      target[index] = blue[data[source + 2]];
+      target[plane + index] = green[data[source + 1]];
+      target[2 * plane + index] = red[data[source]];
     }
   }
 }
@@ -812,7 +832,7 @@ function detectionSize(
 
 export async function runOcr(
   image: ImageBitmap,
-  onProgress?: (progress: LoadProgress) => void
+  onProgress?: OnProgress
 ): Promise<OcrResult> {
   if (image.width === 0 || image.height === 0) {
     return { lines: [], text: "" };
@@ -832,20 +852,20 @@ export async function runOcr(
 
 async function read(
   image: ImageBitmap,
-  onProgress?: (progress: LoadProgress) => void
+  onProgress?: OnProgress
 ): Promise<OcrResult> {
-  const { det, rec, dict } = await loadOcr(onProgress);
-  const { Tensor } = await import("onnxruntime-web");
+  const { det, rec, dict, Tensor } = await loadOcr(onProgress);
 
   const boxes = await detect(det, Tensor, image);
   const lines = await recognise(rec, Tensor, dict, image, boxes);
-  const kept = lines.filter(
-    (line) => line.text.length > 0 && line.score >= DROP_SCORE
+  const rows = groupRows(
+    lines.filter((line) => line.text.length > 0 && line.score >= DROP_SCORE)
   );
 
   return {
-    lines: groupRows(kept).flat(),
-    text: joinLines(kept),
+    lines: rows.flat(),
+    // One row of the image per output line.
+    text: rows.map((row) => row.map((line) => line.text).join(" ")).join("\n"),
   };
 }
 
@@ -865,15 +885,12 @@ async function detect(
     size.width
   );
 
-  const outputs = await det.run({
-    [det.inputNames[0]]: new Tensor("float32", input, [
-      1,
-      3,
-      size.height,
-      size.width,
-    ]),
-  });
-  const probMap = outputs[det.outputNames[0]];
+  const probMap = await runSingle(det, Tensor, input, [
+    1,
+    3,
+    size.height,
+    size.width,
+  ]);
   // Read the map's own dimensions rather than assuming the head is 1:1 with
   // the input.
   const mapWidth = probMap.dims.at(-1) ?? size.width;
@@ -947,15 +964,12 @@ async function recognise(
     }
 
     // biome-ignore lint/performance/noAwaitInLoops: batches share one session, so they must run in turn
-    const outputs = await rec.run({
-      [rec.inputNames[0]]: new Tensor("float32", input, [
-        batch.length,
-        3,
-        REC_HEIGHT,
-        width,
-      ]),
-    });
-    const logits = outputs[rec.outputNames[0]];
+    const logits = await runSingle(rec, Tensor, input, [
+      batch.length,
+      3,
+      REC_HEIGHT,
+      width,
+    ]);
     const [, steps, numClasses] = logits.dims;
     charset ??= buildCharset(dict, numClasses);
     const data = logits.data as Float32Array;

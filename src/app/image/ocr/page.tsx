@@ -8,10 +8,10 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Image from "next/image";
-import { type DragEvent, useRef, useState } from "react";
+import { type DragEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import type { LoadProgress, OcrResult } from "@/lib/ocr";
+import type { OcrResult } from "@/lib/ocr";
 
 // TODO: Investigate why det bounding boxes arent sometimes rendering on chrome android
 
@@ -22,16 +22,25 @@ const PERCENT = 100;
 export default function OcrPage() {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [result, setResult] = useState<OcrResult | null>(null);
-  const [progress, setProgress] = useState<Record<string, LoadProgress>>({});
+  // Whole percent, so a stream of per-chunk events only re-renders when the
+  // number on screen actually changes. Null until the download size is known.
+  const [percent, setPercent] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const downloads = Object.values(progress);
-  const downloaded = downloads.reduce((sum, item) => sum + item.loaded, 0);
-  const downloadTotal = downloads.reduce((sum, item) => sum + item.total, 0);
-  const pending = busy && downloadTotal > 0 && downloaded < downloadTotal;
+  const pending = percent !== null && percent < PERCENT;
+
+  const previewUrl = preview?.url;
+  useEffect(
+    () => () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    },
+    [previewUrl]
+  );
 
   const handleFile = async (file: File | undefined) => {
     if (!file?.type.startsWith("image/")) {
@@ -43,24 +52,21 @@ export default function OcrPage() {
     setResult(null);
     setBusy(true);
 
-    const bitmap = await createImageBitmap(file);
-    setPreview((previous) => {
-      if (previous) {
-        URL.revokeObjectURL(previous.url);
-      }
-      return {
-        height: bitmap.height,
-        name: file.name,
-        url: URL.createObjectURL(file),
-        width: bitmap.width,
-      };
+    const [bitmap, { runOcr }] = await Promise.all([
+      createImageBitmap(file),
+      import("@/lib/ocr"),
+    ]);
+    setPreview({
+      height: bitmap.height,
+      name: file.name,
+      url: URL.createObjectURL(file),
+      width: bitmap.width,
     });
 
     try {
-      const { runOcr } = await import("@/lib/ocr");
       setResult(
-        await runOcr(bitmap, (item) =>
-          setProgress((previous) => ({ ...previous, [item.file]: item }))
+        await runOcr(bitmap, ({ loaded, total }) =>
+          setPercent(total > 0 ? Math.floor((loaded / total) * PERCENT) : null)
         )
       );
     } catch (cause) {
@@ -181,9 +187,7 @@ export default function OcrPage() {
               icon={Loading03Icon}
               strokeWidth={2}
             />
-            {pending
-              ? `Downloading models… ${Math.round((downloaded / downloadTotal) * PERCENT)}%`
-              : "Reading image…"}
+            {pending ? `Downloading models… ${percent}%` : "Reading image…"}
           </div>
         )}
 

@@ -1,9 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-  <rect width="24" height="24" rx="5.5" fill="#18181b"/>
-  <g fill="none" stroke="#fafafa" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.25" transform="translate(2.4 2.4) scale(0.8)">
-    <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/>
-    <rect height="13" rx="2.5" width="18" x="3" y="7"/>
-    <path d="M3 12h7M14 12h7"/>
-    <path d="M10 11h4v2.5a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1Z"/>
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <rect fill="#18181b" height="24" rx="5.5" width="24" />
+  <g
+    fill="none"
+    stroke="#fafafa"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2.25"
+    transform="translate(2.4 2.4) scale(0.8)"
+  >
+    <path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7" />
+    <rect height="13" rx="2.5" width="18" x="3" y="7" />
+    <path d="M3 12h7M14 12h7" />
+    <path d="M10 11h4v2.5a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1Z" />
   </g>
 </svg>
