@@ -1,5 +1,6 @@
 import {
   AudioWave01Icon,
+  BackgroundIcon,
   Image01Icon,
   ScanImageIcon,
   SubtitleIcon,
@@ -29,6 +30,13 @@ export const categories: Category[] = [
         href: "/image/ocr",
         icon: ScanImageIcon,
         name: "OCR",
+      },
+      {
+        description:
+          "Cut the subject out of a photo with a transparent background.",
+        href: "/image/remove-background",
+        icon: BackgroundIcon,
+        name: "Remove background",
       },
     ],
   },

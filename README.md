@@ -11,7 +11,18 @@ with WebGPU (or WebAssembly as a fallback).
 | Tool | What it does | Runs on |
 | --- | --- | --- |
 | **OCR** | Extract text from screenshots, photos and scans | [PP-OCRv6](https://huggingface.co/PaddlePaddle) on ONNX Runtime Web |
+| **Remove background** | Cut the subject out of a photo as a transparent PNG | [RMBG-1.4](https://huggingface.co/briaai/RMBG-1.4) on Transformers.js |
 | **Transcript** | Turn recordings and audio/video files into text | [Whisper](https://huggingface.co/onnx-community/whisper-tiny) on Transformers.js |
+
+### Remove background
+
+- Drag the before/after slider to compare with the original
+- Download as a transparent PNG, or flattened onto white, black or any colour
+- Output keeps the original resolution
+
+| WebGPU (f16) | WebGPU | CPU (WASM) |
+| --- | --- | --- |
+| 88 MB | 176 MB | 44 MB |
 
 ### Transcript
 
@@ -73,19 +84,22 @@ Then open <http://localhost:3000/toolbox>. The app is served under the
 ```text
 src/
 ├── app/
-│   ├── page.tsx              # Home: every tool as a card
-│   ├── image/ocr/            # OCR tool
-│   ├── audio/transcript/     # Transcript tool
-│   └── storybook/            # Component showcase
+│   ├── page.tsx                     # Home: every tool as a card
+│   ├── image/ocr/                   # OCR tool
+│   ├── image/remove-background/     # Remove background tool
+│   ├── audio/transcript/            # Transcript tool
+│   └── storybook/                   # Component showcase
 ├── components/
-│   ├── app-sidebar.tsx       # Sidebar, built from lib/nav.ts
-│   └── ui/                   # shadcn/ui and ElevenLabs UI components
+│   ├── app-sidebar.tsx              # Sidebar, built from lib/nav.ts
+│   └── ui/                          # shadcn/ui and ElevenLabs UI components
 ├── hooks/
 └── lib/
-    ├── nav.ts                # Tool registry (sidebar, home page, search)
-    ├── ocr.ts                # PP-OCR pipeline on ONNX Runtime Web
-    ├── transcribe.ts         # Whisper models, audio decoding, exports
-    └── transcribe.worker.ts  # Whisper inference in a Web Worker
+    ├── nav.ts                       # Tool registry (sidebar, home page, search)
+    ├── ocr.ts                       # PP-OCR pipeline on ONNX Runtime Web
+    ├── remove-background.ts         # RMBG-1.4 worker protocol and entry point
+    ├── remove-background.worker.ts  # RMBG-1.4 inference in a Web Worker
+    ├── transcribe.ts                # Whisper models, audio decoding, exports
+    └── transcribe.worker.ts         # Whisper inference in a Web Worker
 ```
 
 ## Adding a tool
