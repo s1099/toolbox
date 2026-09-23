@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Toolbox
 
-## Getting Started
+Small, private tools that run entirely in your browser. Files never leave your
+device: models are downloaded once from Hugging Face, cached, and run locally
+with WebGPU (or WebAssembly as a fallback).
 
-First, run the development server:
+**[Open Toolbox →](https://s1099.github.io/toolbox/)**
+
+## Tools
+
+| Tool | What it does | Runs on |
+| --- | --- | --- |
+| **OCR** | Extract text from screenshots, photos and scans | [PP-OCRv6](https://huggingface.co/PaddlePaddle) on ONNX Runtime Web |
+| **Transcript** | Turn recordings and audio/video files into text | [Whisper](https://huggingface.co/onnx-community/whisper-tiny) on Transformers.js |
+
+### Transcript
+
+- Upload audio/video or record from your mic
+- Auto-detects the language; word-by-word playback with clickable timestamps
+- Export to `.txt`, `.srt` or `.vtt`
+
+| Model | WebGPU | CPU (WASM) |
+| --- | --- | --- |
+| Whisper Tiny (default) | 122 MB | 44 MB |
+| Whisper Base | 209 MB | 80 MB |
+| Whisper Small | 589 MB | 252 MB |
+
+## Browser support
+
+Any recent Chromium, Firefox or Safari works. WebGPU (Chrome/Edge 113+,
+Safari 26+) is much faster for the larger models; without it everything runs
+on the CPU through WebAssembly. Recording needs microphone permission.
+
+## Tech stack
+
+- [Next.js 16](https://nextjs.org) (App Router, static export) with React 19
+  and the React Compiler
+- [Tailwind CSS 4](https://tailwindcss.com),
+  [shadcn/ui](https://ui.shadcn.com) on [Base UI](https://base-ui.com), and
+  [Hugeicons](https://hugeicons.com)
+- [ElevenLabs UI](https://ui.elevenlabs.io) for the waveform, mic picker,
+  voice button and transcript viewer
+- [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/) and
+  [Transformers.js](https://huggingface.co/docs/transformers.js) for inference
+- [Bun](https://bun.sh) and [Ultracite](https://www.ultracite.ai)
+  ([Biome](https://biomejs.dev)) for tooling
+
+## Getting started
+
+Requires [Bun](https://bun.sh) 1.3 or newer.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+git clone https://github.com/s1099/toolbox.git
+cd toolbox
+bun install
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open <http://localhost:3000/toolbox>. The app is served under the
+`/toolbox` base path so it matches GitHub Pages.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+| --- | --- |
+| `bun dev` | Start the dev server |
+| `bun run build` | Build the static site into `out/` |
+| `bun run check` | Lint and format-check with Ultracite |
+| `bun run fix` | Auto-fix lint and formatting issues |
 
-## Learn More
+## Project structure
 
-To learn more about Next.js, take a look at the following resources:
+```text
+src/
+├── app/
+│   ├── page.tsx              # Home: every tool as a card
+│   ├── image/ocr/            # OCR tool
+│   ├── audio/transcript/     # Transcript tool
+│   └── storybook/            # Component showcase
+├── components/
+│   ├── app-sidebar.tsx       # Sidebar, built from lib/nav.ts
+│   └── ui/                   # shadcn/ui and ElevenLabs UI components
+├── hooks/
+└── lib/
+    ├── nav.ts                # Tool registry (sidebar, home page, search)
+    ├── ocr.ts                # PP-OCR pipeline on ONNX Runtime Web
+    ├── transcribe.ts         # Whisper models, audio decoding, exports
+    └── transcribe.worker.ts  # Whisper inference in a Web Worker
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Adding a tool
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Create a page under `src/app/<category>/<tool>/page.tsx`.
+2. Register it in `src/lib/nav.ts` with a name, icon, route and one-line
+   description. The sidebar, home page and search pick it up from there.
+3. Keep heavy work off the main thread (a Web Worker, or a lazily imported
+   module) and load models on demand, so opening the tool stays instant.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+UI conventions (tokens, depth, spacing) are documented in
+[`DESIGN.md`](DESIGN.md), and there's a live component showcase at
+`/storybook`.
