@@ -190,7 +190,7 @@ function Section({
           <p className="text-muted-foreground text-sm">{description}</p>
         ) : null}
       </div>
-      <div className="flex flex-col gap-4 rounded-xl border p-4">
+      <div className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-surface">
         {children}
       </div>
     </section>

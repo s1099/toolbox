@@ -109,7 +109,7 @@ export default function OcrPage() {
 
         {/** biome-ignore lint/a11y/noStaticElementInteractions: drop target, the button above is the keyboard path */}
         <div
-          className="flex min-h-48 flex-1 items-center justify-center overflow-auto rounded-xl border border-dashed bg-muted/30 p-3"
+          className="flex min-h-48 flex-1 items-center justify-center overflow-auto rounded-xl border border-dashed bg-muted/30 p-3 shadow-well"
           onDragOver={(event) => event.preventDefault()}
           onDrop={handleDrop}
         >

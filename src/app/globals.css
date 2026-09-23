@@ -46,6 +46,12 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --shadow-raised: var(--depth-raised);
+  --shadow-raised-strong: var(--depth-raised-strong);
+  --shadow-pressed: var(--depth-pressed);
+  --shadow-well: var(--depth-well);
+  --shadow-surface: var(--depth-surface);
+  --shadow-overlay: var(--depth-overlay);
 }
 
 :root {
@@ -81,6 +87,33 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+
+  /* Depth: shared highlight/shade layers that give surfaces a lit-from-above feel. */
+  --gloss: linear-gradient(
+    to bottom,
+    oklch(1 0 0 / 0.16),
+    oklch(1 0 0 / 0) 55%,
+    oklch(0 0 0 / 0.06)
+  );
+  --gloss-subtle: linear-gradient(
+    to bottom,
+    oklch(1 0 0 / 0.7),
+    oklch(1 0 0 / 0) 70%
+  );
+  --depth-raised:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.9), inset 0 -1px 0 0 oklch(0 0 0 / 0.05),
+    0 1px 2px 0 oklch(0 0 0 / 0.08), 0 2px 4px -2px oklch(0 0 0 / 0.06);
+  --depth-raised-strong:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.22), inset 0 -1px 0 0 oklch(0 0 0 / 0.25),
+    0 1px 2px 0 oklch(0 0 0 / 0.2), 0 3px 8px -3px oklch(0 0 0 / 0.3);
+  --depth-pressed:
+    inset 0 1px 3px 0 oklch(0 0 0 / 0.18), inset 0 0 0 1px oklch(0 0 0 / 0.04);
+  --depth-well:
+    inset 0 1px 2px 0 oklch(0 0 0 / 0.07), 0 1px 0 0 oklch(1 0 0 / 0.9);
+  --depth-surface: 0 1px 2px 0 oklch(0 0 0 / 0.04);
+  --depth-overlay:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.8), 0 4px 8px -4px oklch(0 0 0 / 0.1),
+    0 16px 40px -8px oklch(0 0 0 / 0.22);
 }
 
 .dark {
@@ -115,6 +148,41 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
+
+  --gloss: linear-gradient(
+    to bottom,
+    oklch(1 0 0 / 0.18),
+    oklch(1 0 0 / 0) 55%,
+    oklch(0 0 0 / 0.1)
+  );
+  --gloss-subtle: linear-gradient(
+    to bottom,
+    oklch(1 0 0 / 0.045),
+    oklch(1 0 0 / 0) 70%
+  );
+  --depth-raised:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.1), 0 1px 2px 0 oklch(0 0 0 / 0.45),
+    0 2px 6px -2px oklch(0 0 0 / 0.35);
+  --depth-raised-strong:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.45), inset 0 -1px 0 0 oklch(0 0 0 / 0.2),
+    0 1px 2px 0 oklch(0 0 0 / 0.5), 0 4px 10px -3px oklch(0 0 0 / 0.5);
+  --depth-pressed:
+    inset 0 2px 4px 0 oklch(0 0 0 / 0.4), inset 0 0 0 1px oklch(0 0 0 / 0.15);
+  --depth-well:
+    inset 0 1px 3px 0 oklch(0 0 0 / 0.4), 0 1px 0 0 oklch(1 0 0 / 0.05);
+  --depth-surface:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.04), 0 1px 2px 0 oklch(0 0 0 / 0.25);
+  --depth-overlay:
+    inset 0 1px 0 0 oklch(1 0 0 / 0.09), 0 4px 12px -4px oklch(0 0 0 / 0.45),
+    0 20px 48px -12px oklch(0 0 0 / 0.7);
+}
+
+@utility gloss {
+  background-image: var(--gloss);
+}
+
+@utility gloss-subtle {
+  background-image: var(--gloss-subtle);
 }
 
 @layer base {
