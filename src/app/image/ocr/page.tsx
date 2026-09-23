@@ -64,6 +64,7 @@ export default function OcrPage() {
     });
 
     try {
+      // The bitmap moves to the worker, which closes it.
       setResult(
         await runOcr(bitmap, ({ loaded, total }) =>
           setPercent(total > 0 ? Math.floor((loaded / total) * PERCENT) : null)
@@ -73,7 +74,6 @@ export default function OcrPage() {
       setError(cause instanceof Error ? cause.message : "Recognition failed.");
     } finally {
       setBusy(false);
-      bitmap.close();
     }
   };
 
