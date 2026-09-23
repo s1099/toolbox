@@ -75,6 +75,7 @@ export function SidebarActions() {
     <SidebarMenu>
       <SidebarMenuItem className="flex items-center gap-1 group-data-[collapsible=icon]:hidden">
         <Button
+          nativeButton={false}
           render={<a href={REPO_URL} rel="noopener" target="_blank" />}
           size="icon"
           variant="ghost"

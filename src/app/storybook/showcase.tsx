@@ -13,7 +13,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { type ReactNode, useCallback, useState } from "react";
-import { ToolboxLogo } from "@/components/toolbox-logo";
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -126,7 +125,6 @@ import {
 } from "@/components/ui/tooltip";
 
 const SECTIONS = [
-  { id: "brand", name: "Brand" },
   { id: "button", name: "Button" },
   { id: "card", name: "Card" },
   { id: "input", name: "Input" },
@@ -717,21 +715,6 @@ function CommandShowcase() {
   );
 }
 
-function BrandShowcase() {
-  return (
-    <Row label="ToolboxLogo">
-      <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-        <ToolboxLogo aria-hidden="true" className="size-[18px]" />
-      </div>
-      <ToolboxLogo aria-hidden="true" className="size-6" />
-      <ToolboxLogo
-        aria-hidden="true"
-        className="size-10 text-muted-foreground"
-      />
-    </Row>
-  );
-}
-
 export function Showcase() {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -758,9 +741,6 @@ export function Showcase() {
           </nav>
         </header>
 
-        <Section id="brand">
-          <BrandShowcase />
-        </Section>
         <Section id="button">
           <ButtonShowcase />
         </Section>
