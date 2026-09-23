@@ -721,11 +721,6 @@ export function Showcase() {
       <div className="mx-auto flex max-w-4xl flex-col gap-10 p-6">
         <header className="flex flex-col gap-3">
           <h1 className="font-heading font-semibold text-2xl">Storybook</h1>
-          <p className="text-muted-foreground text-sm">
-            Every component in <code>components/ui</code>, with its variants.
-            Internal page, not linked from the app. The sidebar itself is the
-            live example of <code>Sidebar</code>.
-          </p>
           <nav aria-label="Components" className="flex flex-wrap gap-1.5">
             {SECTIONS.map((section) => (
               <Button

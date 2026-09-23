@@ -25,14 +25,17 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader className="h-12 justify-center">
-        <div className="flex items-center gap-2.5 px-1 group-data-[collapsible=icon]:px-0">
+        <Link
+          className="flex items-center gap-2.5 rounded-lg px-1 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring group-data-[collapsible=icon]:px-0"
+          href="/"
+        >
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
             <ToolboxLogo aria-hidden="true" className="size-[18px]" />
           </div>
           <span className="truncate font-heading font-semibold text-base tracking-tight group-data-[collapsible=icon]:hidden">
             Toolbox
           </span>
-        </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         {categories.map((category) => (

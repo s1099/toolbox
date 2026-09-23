@@ -1,7 +1,13 @@
-import { Image01Icon, ScanImageIcon } from "@hugeicons/core-free-icons";
+import {
+  AudioWave01Icon,
+  Image01Icon,
+  ScanImageIcon,
+  SubtitleIcon,
+} from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "@hugeicons/react";
 
 export interface Tool {
+  description: string;
   href: string;
   icon: IconSvgElement;
   name: string;
@@ -17,7 +23,26 @@ export const categories: Category[] = [
   {
     icon: Image01Icon,
     name: "Image",
-    tools: [{ href: "/image/ocr", icon: ScanImageIcon, name: "OCR" }],
+    tools: [
+      {
+        description: "Pull text out of screenshots, photos and scans.",
+        href: "/image/ocr",
+        icon: ScanImageIcon,
+        name: "OCR",
+      },
+    ],
+  },
+  {
+    icon: AudioWave01Icon,
+    name: "Audio",
+    tools: [
+      {
+        description: "Turn recordings and audio files into text.",
+        href: "/audio/transcript",
+        icon: SubtitleIcon,
+        name: "Transcript",
+      },
+    ],
   },
 ];
 
