@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import invertocat from "../../public/GitHub_Invertocat_Black.svg";
 
-const REPO_URL = "https://github.com/s1099/toolkit";
+const REPO_URL = "https://github.com/s1099/toolbox";
 
 /**
  * Imported rather than referenced by URL: the site is served under a basePath,

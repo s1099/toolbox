@@ -1,10 +1,10 @@
 "use client";
 
-import { ToolsIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarActions } from "@/components/sidebar-actions";
+import { ToolboxLogo } from "@/components/toolbox-logo";
 import {
   Sidebar,
   SidebarContent,
@@ -27,10 +27,10 @@ export function AppSidebar() {
       <SidebarHeader className="h-12 justify-center">
         <div className="flex items-center gap-2.5 px-1 group-data-[collapsible=icon]:px-0">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <HugeiconsIcon icon={ToolsIcon} size={18} strokeWidth={2} />
+            <ToolboxLogo aria-hidden="true" className="size-[18px]" />
           </div>
           <span className="truncate font-heading font-semibold text-base tracking-tight group-data-[collapsible=icon]:hidden">
-            Toolkit
+            Toolbox
           </span>
         </div>
       </SidebarHeader>
