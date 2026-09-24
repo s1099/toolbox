@@ -7,13 +7,14 @@ import {
   RawImage,
   type Tensor,
 } from "@huggingface/transformers";
-import {
-  type Device,
-  MODEL_ID,
-  type Progress,
-  type RemoveRequest,
-  type WorkerMessage,
+import type {
+  Device,
+  Progress,
+  RemoveRequest,
+  WorkerMessage,
 } from "@/lib/remove-background";
+
+const MODEL_ID = "briaai/RMBG-1.4";
 
 // Models only ever come from the Hub; skip probing this site for local copies.
 env.allowLocalModels = false;

@@ -5,14 +5,13 @@ import {
   RawImage,
   Tensor,
 } from "@huggingface/transformers";
-import {
-  type Device,
-  findModel,
-  type ModelKey,
-  type UpscalePlan,
-  type UpscaleRequest,
-  type WorkerMessage,
+import type {
+  Device,
+  UpscalePlan,
+  UpscaleRequest,
+  WorkerMessage,
 } from "@/lib/upscale";
+import { findModel, type ModelKey } from "@/lib/upscale-models";
 import {
   hasTransparency,
   type Pixels,

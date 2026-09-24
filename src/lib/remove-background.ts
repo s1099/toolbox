@@ -1,8 +1,10 @@
 // Background removal with BRIA RMBG-1.4, run in the browser by transformers.js
 // inside a Web Worker (see remove-background.worker.ts). This file holds the
 // message protocol both sides share and the main-thread entry point.
-
-export const MODEL_ID = "briaai/RMBG-1.4";
+//
+// The worker may only `import type` from this file: a value import would pull
+// the `new Worker(new URL(...))` below into the worker's own bundle, and that
+// self-reference hangs `next build` forever under Turbopack.
 
 export type Device = "webgpu" | "wasm";
 

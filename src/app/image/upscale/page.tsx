@@ -22,15 +22,17 @@ import { Kbd } from "@/components/ui/kbd";
 import { Progress } from "@/components/ui/progress";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
 import {
-  findModel,
-  isModelCached,
   MAX_OUTPUT_PIXELS,
   MAX_OUTPUT_SIDE,
-  MODELS,
-  type ModelKey,
   type UpscalePlan,
   upscale,
 } from "@/lib/upscale";
+import {
+  findModel,
+  isModelCached,
+  MODELS,
+  type ModelKey,
+} from "@/lib/upscale-models";
 import { cn } from "@/lib/utils";
 import { Viewer } from "./viewer";
 
