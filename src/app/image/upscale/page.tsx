@@ -7,6 +7,7 @@ import {
   Download04Icon,
   ImageUpload01Icon,
   SparklesIcon,
+  SquareArrowExpand01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -75,12 +76,6 @@ type Job =
     }
   | { model: ModelKey; ms: number; phase: "done"; plan: UpscalePlan }
   | { message: string; phase: "error" };
-
-// A 4×4 blocky blob beside its smooth counterpart, for the empty state.
-const PIXEL_BLOB = [
-  0.08, 0.3, 0.3, 0.08, 0.3, 0.85, 0.85, 0.3, 0.3, 0.85, 0.85, 0.3, 0.08, 0.3,
-  0.3, 0.08,
-].map((opacity, index) => ({ id: `cell-${index}`, opacity }));
 
 export default function UpscalePage() {
   const [source, setSource] = useState<Source | null>(null);
@@ -372,7 +367,6 @@ export default function UpscalePage() {
           <OutputSize scale={model.scale} source={source} />
           <div className="mt-auto flex flex-col gap-3 border-t pt-4">
             <Actions
-              cached={cached[modelKey] ?? false}
               job={job}
               modelKey={modelKey}
               onCancel={() => abortRef.current?.abort()}
@@ -390,22 +384,12 @@ export default function UpscalePage() {
 function DropPrompt({ onChoose }: { onChoose: () => void }) {
   return (
     <div className="m-3 flex flex-1 flex-col items-center justify-center gap-5 rounded-lg border-2 border-muted-foreground/20 border-dashed p-6 text-center">
-      <div aria-hidden="true" className="flex items-center gap-3">
-        <div className="grid size-12 grid-cols-4 overflow-hidden rounded-xl border bg-card shadow-surface">
-          {PIXEL_BLOB.map((cell) => (
-            <span
-              className="bg-foreground"
-              key={cell.id}
-              style={{ opacity: cell.opacity }}
-            />
-          ))}
-        </div>
+      <div className="flex size-14 items-center justify-center rounded-2xl border bg-card shadow-surface">
         <HugeiconsIcon
-          className="size-4 text-muted-foreground"
-          icon={ArrowRight02Icon}
+          className="size-6"
+          icon={SquareArrowExpand01Icon}
           strokeWidth={2}
         />
-        <div className="size-12 rounded-xl border bg-[radial-gradient(circle,var(--color-foreground)_0%,color-mix(in_oklch,var(--color-foreground)_40%,transparent)_45%,transparent_72%)] bg-card shadow-surface" />
       </div>
       <div className="flex max-w-sm flex-col gap-1.5">
         <p className="font-heading font-medium text-base">
@@ -589,7 +573,6 @@ function Dimensions({
 }
 
 function Actions({
-  cached,
   job,
   modelKey,
   onCancel,
@@ -597,7 +580,6 @@ function Actions({
   result,
   source,
 }: {
-  cached: boolean;
   job: Job;
   modelKey: ModelKey;
   onCancel: () => void;
@@ -666,11 +648,6 @@ function Actions({
         <HugeiconsIcon icon={SparklesIcon} strokeWidth={2} />
         Upscale {model.scale}×
       </Button>
-      <p className="text-center text-muted-foreground text-xs">
-        {cached
-          ? "Model saved. Works offline."
-          : `Downloads ${formatBytes(model.downloadBytes)} once, then works offline.`}
-      </p>
     </>
   );
 }
